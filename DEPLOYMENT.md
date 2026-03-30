@@ -8,13 +8,17 @@ This guide walks you through everything needed to take CoupleUp from code to a l
 
 | # | Task | Where |
 |---|------|--------|
-| 1 | Register a Meta Developer app and get Instagram OAuth credentials | [developers.facebook.com](https://developers.facebook.com) |
-| 2 | Provision a PostgreSQL database | Neon / Supabase / Railway (all free tiers available) |
-| 3 | Run the Prisma database migration | `npx prisma migrate deploy` |
-| 4 | Set environment variables on your hosting platform | Vercel dashboard |
-| 5 | Deploy the Next.js app | Vercel (recommended) |
-| 6 | Point a domain at the deployment | Vercel / your registrar |
-| 7 | Add your live callback URL to your Meta app | developers.facebook.com |
+| 1 | Register a Google Cloud OAuth 2.0 client (recommended — instant, no review required) | [console.cloud.google.com](https://console.cloud.google.com) |
+| 2 | *(Optional)* Register a Meta Developer app and get Instagram OAuth credentials | [developers.facebook.com](https://developers.facebook.com) |
+| 3 | Provision a PostgreSQL database | Neon / Supabase / Railway (all free tiers available) |
+| 4 | Run the Prisma database migration | `npx prisma migrate deploy` |
+| 5 | Create a Vercel Blob store (for photo uploads by Google users) | Vercel dashboard → Storage → Blob |
+| 6 | Set environment variables on your hosting platform | Vercel dashboard |
+| 7 | Deploy the Next.js app | Vercel (recommended) |
+| 8 | Point a domain at the deployment | Vercel / your registrar |
+| 9 | Add your live callback URL to Google Cloud Console (and Meta if using Instagram) | Google Cloud Console / developers.facebook.com |
+
+> **Tip:** Google OAuth requires zero review and works immediately after creating the credential — it is the fastest way to get your first real users into CoupleUp while the Meta review process is ongoing.
 
 ---
 
@@ -42,7 +46,49 @@ CoupleUp uses Instagram's **Basic Display API**. You need a Facebook/Meta develo
 
 ---
 
-## 3. Database Setup (Neon — Recommended Free Option)
+## 3. Google OAuth Setup (Google Cloud Console)
+
+Google OAuth is the **recommended and fastest** way to get started — no app review required, works immediately.
+
+### Step-by-step
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create a new project (e.g. `CoupleUp`).
+2. In the left sidebar go to **APIs & Services → OAuth consent screen**.
+   - Choose **External** user type and click **Create**.
+   - Fill in **App name** (`CoupleUp`), **User support email**, and **Developer contact email**.
+   - Under **Scopes**, add `email` and `profile` (both are non-sensitive and require no review).
+   - Under **Test users**, add your own Google account so you can test before publishing.
+   - Click **Save and Continue** through all steps.
+3. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**.
+   - Application type: **Web application**.
+   - Name: `CoupleUp Web`.
+   - **Authorised redirect URIs**: `https://your-domain.com/api/auth/callback/google`
+     (Use `http://localhost:3000/api/auth/callback/google` for local development.)
+   - Click **Create**.
+4. Copy your **Client ID** and **Client Secret** — these become `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+5. (Optional) To allow all Google users in (not just test users), go to **OAuth consent screen → Publish App**. Because we only request `email` and `profile`, this requires no Google review.
+
+> **Tip for local dev:** Add `http://localhost:3000/api/auth/callback/google` as an authorised redirect URI. Remove it before going to production.
+
+---
+
+## 4. Vercel Blob Setup (Photo Uploads)
+
+Google users are required to upload their own profile photo (since Google's OAuth photo may not be suitable). Photos are stored in **Vercel Blob**.
+
+### Step-by-step
+
+1. Go to your **Vercel project dashboard → Storage tab → Create Database → Blob**.
+2. Name the store (e.g. `coupleup-photos`) and click **Create**.
+3. Vercel will automatically add `BLOB_READ_WRITE_TOKEN` to your project's environment variables.
+   - For local development, copy it from the Vercel dashboard and add it to your `.env.local` file.
+4. Uploaded photos are publicly readable (needed to display them in the app). The `BLOB_READ_WRITE_TOKEN` must be kept **server-side only** — it is never exposed to the browser.
+
+> **Note:** Vercel Blob's free tier provides 500 MB of storage — more than enough to get started.
+
+---
+
+## 5. Database Setup (Neon — Recommended Free Option)
 
 ### Option A: Neon (serverless Postgres, generous free tier)
 
@@ -67,7 +113,7 @@ CoupleUp uses Instagram's **Basic Display API**. You need a Facebook/Meta develo
 
 ---
 
-## 4. Environment Variables
+## 6. Environment Variables
 
 Create a `.env` file locally (never commit it — it's in `.gitignore`). On Vercel, add these under **Project Settings → Environment Variables**.
 
@@ -79,9 +125,17 @@ DATABASE_URL="postgresql://user:password@host:5432/coupleup?sslmode=require"
 NEXTAUTH_URL="https://your-domain.com"        # exact public URL of your app
 NEXTAUTH_SECRET="a-random-32-char-secret"     # generate with: openssl rand -base64 32
 
-# Instagram OAuth (from Meta Developer Console)
+# Google OAuth (Google Cloud Console) — required
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# Instagram OAuth (Meta Developer Console) — optional
 INSTAGRAM_CLIENT_ID="your-instagram-app-id"
 INSTAGRAM_CLIENT_SECRET="your-instagram-app-secret"
+
+# Vercel Blob (photo uploads for Google users) — required
+# Vercel adds this automatically when you connect a Blob store; copy to .env.local for dev
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxx"
 
 # T&C version (increment this when you update terms to re-prompt users)
 TC_VERSION="1.0"
@@ -94,7 +148,7 @@ openssl rand -base64 32
 
 ---
 
-## 5. Running the Database Migration
+## 7. Running the Database Migration
 
 After setting `DATABASE_URL`, run:
 
@@ -113,7 +167,7 @@ This creates all tables: `users`, `user_profiles`, `couples`, `votes`, `daily_vo
 
 ---
 
-## 6. Deploying to Vercel (Recommended)
+## 8. Deploying to Vercel (Recommended)
 
 Vercel is the easiest host for Next.js apps — zero config required.
 
@@ -147,7 +201,7 @@ npx prisma migrate deploy && next build
 
 ---
 
-## 7. Post-Deploy Checklist
+## 9. Post-Deploy Checklist
 
 - [ ] Visit `https://your-domain.com` — landing page loads
 - [ ] Click "Continue with Instagram" — redirected to Instagram login
@@ -164,7 +218,7 @@ npx prisma migrate deploy && next build
 
 ---
 
-## 8. Local Development Setup
+## 10. Local Development Setup
 
 ```bash
 # 1. Clone repo
@@ -190,7 +244,7 @@ For Instagram OAuth to work locally, add `http://localhost:3000/api/auth/callbac
 
 ---
 
-## 9. What Was Built (Implementation Summary)
+## 11. What Was Built (Implementation Summary)
 
 ### Core Engine (no DB dependencies, fully tested)
 | Module | File | Status |
@@ -238,7 +292,7 @@ For Instagram OAuth to work locally, add `http://localhost:3000/api/auth/callbac
 
 ---
 
-## 10. Frequently Asked Questions
+## 12. Frequently Asked Questions
 
 **Q: Do I need Meta app review before going live?**  
 A: Not for testing — you can add up to 25 Instagram test users without review. For a full public launch you need to submit for `instagram_graph_user_profile` permission review. Meta typically approves this within 5 business days if your privacy policy is clear (ours is at `/privacy`).
