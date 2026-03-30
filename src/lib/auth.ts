@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextAuthOptions } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './prisma';
@@ -23,7 +24,7 @@ export const authOptions: NextAuthOptions = {
       },
       clientId: process.env.INSTAGRAM_CLIENT_ID!,
       clientSecret: process.env.INSTAGRAM_CLIENT_SECRET!,
-      profile(profile: any) {
+      profile(profile: Record<string, string>) {
         return {
           id: profile.id,
           name: profile.name || profile.username,
@@ -36,20 +37,18 @@ export const authOptions: NextAuthOptions = {
     },
   ],
   callbacks: {
-    async signIn({ user, account, profile }: any) {
-      if (account?.provider === 'instagram') {
-        const instagramId = (profile as any)?.id || user.id;
-        const existingUser = await prisma.user.findUnique({
-          where: { instagramId },
-        });
-        if (!existingUser) {
-          (user as any).isNewUser = true;
-          (user as any).instagramId = instagramId;
-        }
+    async signIn({ user, profile }: { user: any; account: any; profile?: any }) {
+      const instagramId = profile?.id || user.id;
+      const existingUser = await prisma.user.findUnique({
+        where: { instagramId },
+      });
+      if (!existingUser) {
+        user.isNewUser = true;
+        user.instagramId = instagramId;
       }
       return true;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }: { session: any; token: any }) {
       if (token) {
         session.user.id = token.sub;
         session.user.instagramId = token.instagramId;
@@ -57,10 +56,10 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user, account, profile }: any) {
+    async jwt({ token, user, profile }: { token: any; user?: any; account?: any; profile?: any }) {
       if (user) {
-        token.instagramId = (user as any).instagramId || (profile as any)?.id;
-        token.isNewUser = (user as any).isNewUser;
+        token.instagramId = user.instagramId || profile?.id;
+        token.isNewUser = user.isNewUser;
       }
       return token;
     },

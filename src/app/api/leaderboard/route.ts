@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
       dateFilter.setDate(dateFilter.getDate() - 7);
     }
 
-    const voteWhere: any = {};
+    const voteWhere: Prisma.VoteWhereInput = {};
     if (dateFilter) {
       voteWhere.votedAt = { gte: dateFilter };
     }

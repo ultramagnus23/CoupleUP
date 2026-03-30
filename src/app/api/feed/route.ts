@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
       ? await prisma.user.findUnique({ where: { instagramId } })
       : null;
 
-    const where: any = { isActive: true };
+    const where: Prisma.CoupleWhereInput = { isActive: true };
     if (filter === 'wwomen') {
       where.preferenceType = { in: ['FEMALE-WOMEN', 'NONBINARY-WOMEN'] };
     } else if (filter === 'mmen') {

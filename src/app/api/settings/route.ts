@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateNumerologyProfile } from '@/lib/numerology';
 import { runMatchingEngine } from '@/lib/matching';
-import { Gender, MatchPreference } from '@prisma/client';
+import { Gender, MatchPreference, Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
     let rerankMatching = false;
 
     if (gender) { updateData.gender = gender as Gender; rerankMatching = true; }
