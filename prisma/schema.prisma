@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  /// Stores the provider-scoped account ID.
+  /// For Instagram users this is the raw Instagram ID.
+  /// For Google users this is prefixed: "google:{google_sub}".
+  instagramId       String    @unique @map("instagram_id")
+  /// "instagram" or "google"
+  provider          String    @default("instagram")
+  username          String
+  displayName       String    @map("display_name")
+  profilePhotoUrl   String    @map("profile_photo_url")
+  /// True once the user has uploaded their own photo via /upload-photo.
+  /// Always true for Instagram users (their profile photo is used directly).
+  /// Google users must upload before proceeding to /setup.
+  photoUploaded     Boolean   @default(false) @map("photo_uploaded")
+  numerologyName    String?   @map("numerology_name")
+  dateOfBirth       DateTime? @map("date_of_birth")
+  lifePathNumber    Int?      @map("life_path_number")
+  expressionNumber  Int?      @map("expression_number")
+  soulUrgeNumber    Int?      @map("soul_urge_number")
+  gender            Gender?
+  matchPreference   MatchPreference? @map("match_preference")
+  consentGiven      Boolean   @default(false) @map("consent_given")
+  consentTimestamp  DateTime? @map("consent_timestamp")
+  consentIp         String?   @map("consent_ip")
+  consentUserAgent  String?   @map("consent_user_agent")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastActiveAt      DateTime? @map("last_active_at")
+
+  profile           UserProfile?
+  couplesAsUser1    Couple[]  @relation("user1")
+  couplesAsUser2    Couple[]  @relation("user2")
+  votes             Vote[]
+  reports           Report[]
+  consentRecords    ConsentRecord[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  age              Int?
+  city             String?
+  interests        String[]
+  relationshipGoal String?  @map("relationship_goal")
+  personalityType  String?  @map("personality_type")
+  dealbreakers     String?
+  funAnswer        String?  @map("fun_answer")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_profiles")
+}
+
+model Couple {
+  id                 String   @id @default(uuid())
+  user1Id            String   @map("user_1_id")
+  user2Id            String   @map("user_2_id")
+  compatibilityScore Int      @map("compatibility_score")
+  lpScore            Int      @map("lp_score")
+  expressionScore    Int      @map("expression_score")
+  soulUrgeScore      Int      @map("soul_urge_score")
+  preferenceType     String?  @map("preference_type")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  user1   User    @relation("user1", fields: [user1Id], references: [id])
+  user2   User    @relation("user2", fields: [user2Id], references: [id])
+  votes   Vote[]
+  reports Report[]
+
+  @@map("couples")
+}
+
+model Vote {
+  id       String   @id @default(uuid())
+  voterId  String   @map("voter_id")
+  coupleId String   @map("couple_id")
+  votedAt  DateTime @default(now()) @map("voted_at")
+
+  voter  User   @relation(fields: [voterId], references: [id])
+  couple Couple @relation(fields: [coupleId], references: [id])
+
+  @@unique([voterId, coupleId])
+  @@map("votes")
+}
+
+model DailyVoteCount {
+  voterId  String @map("voter_id")
+  voteDate DateTime @map("vote_date") @db.Date
+  count    Int    @default(0)
+
+  @@id([voterId, voteDate])
+  @@map("daily_vote_counts")
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String       @map("reporter_id")
+  coupleId   String       @map("couple_id")
+  reason     String
+  detail     String?
+  status     ReportStatus @default(PENDING)
+  reportedAt DateTime     @default(now()) @map("reported_at")
+
+  reporter User   @relation(fields: [reporterId], references: [id])
+  couple   Couple @relation(fields: [coupleId], references: [id])
+
+  @@map("reports")
+}
+
+model ConsentRecord {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  consentTimestamp DateTime @map("consent_timestamp")
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  tcVersion       String   @map("tc_version")
+  checkbox1       Boolean  @map("checkbox_1")
+  checkbox2       Boolean  @map("checkbox_2")
+  checkbox3       Boolean  @map("checkbox_3")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("consent_records")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NONBINARY
+}
+
+enum MatchPreference {
+  WOMEN
+  MEN
+  EVERYONE
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+}
