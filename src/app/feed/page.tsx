@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSessionUser } from '@/hooks/useSessionUser';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -36,7 +37,8 @@ export default function FeedPage() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   // In a real app, instagramId comes from session
-  const instagramId = typeof window !== 'undefined' ? localStorage.getItem('instagramId') || '' : '';
+  const { user } = useSessionUser();
+  const instagramId = user?.instagramId ?? '';
 
   const fetchCouples = useCallback(async (pageNum: number, filterVal: Filter, reset = false) => {
     if (loading) return;

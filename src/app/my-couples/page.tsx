@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSessionUser } from '@/hooks/useSessionUser';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LIFE_PATH_DESCRIPTIONS } from '@/lib/numerology';
@@ -33,7 +34,8 @@ export default function MyCouplesPage() {
   const [loading, setLoading] = useState(true);
   const [leavingId, setLeavingId] = useState<string | null>(null);
 
-  const instagramId = typeof window !== 'undefined' ? localStorage.getItem('instagramId') || '' : '';
+  const { user } = useSessionUser();
+  const instagramId = user?.instagramId ?? '';
 
   useEffect(() => {
     if (!instagramId) return;

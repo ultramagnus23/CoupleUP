@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSessionUser } from '@/hooks/useSessionUser';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -22,7 +23,8 @@ export default function SettingsPage() {
   const [consentDate, setConsentDate] = useState('');
   const [lifePathNumber, setLifePathNumber] = useState<number | null>(null);
 
-  const instagramId = typeof window !== 'undefined' ? localStorage.getItem('instagramId') || '' : '';
+  const { user } = useSessionUser();
+  const instagramId = user?.instagramId ?? '';
 
   useEffect(() => {
     if (!instagramId) return;
@@ -80,7 +82,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ instagramId, confirmation: 'DELETE' }),
       });
       if (res.ok) {
-        localStorage.removeItem('instagramId');
+        // session cleared by NextAuth signout
         router.push('/');
       } else {
         const data = await res.json();

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSessionUser } from '@/hooks/useSessionUser';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -21,7 +22,8 @@ export default function LeaderboardPage() {
   const [userBestRank, setUserBestRank] = useState<{ rank: number; voteCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const instagramId = typeof window !== 'undefined' ? localStorage.getItem('instagramId') || '' : '';
+  const { user } = useSessionUser();
+  const instagramId = user?.instagramId ?? '';
 
   const fetchLeaderboard = useCallback(async () => {
     setLoading(true);

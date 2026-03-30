@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,6 +11,7 @@ export default function SetupPage() {
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [instagramId, setInstagramId] = useState('');
 
   // Step 1 fields
   const [gender, setGender] = useState('');
@@ -26,10 +27,20 @@ export default function SetupPage() {
   const [dealbreakers, setDealbreakers] = useState('');
   const [funAnswer, setFunAnswer] = useState('');
 
-  const params = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams();
-  const instagramId = params.get('instagramId') || '';
+  // Load session user data
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.user) {
+          setInstagramId(data.user.instagramId);
+          // Pre-fill numerology name from Instagram display name
+          if (data.user.displayName) setNumerologyName(data.user.displayName);
+          if (data.user.setupDone) router.replace('/feed');
+        }
+      })
+      .catch(console.error);
+  }, [router]);
 
   async function handleStep1() {
     if (!gender || !matchPreference || !dateOfBirth || !numerologyName) {
@@ -38,7 +49,6 @@ export default function SetupPage() {
     }
     setLoading(true);
     setError('');
-
     try {
       const res = await fetch('/api/setup', {
         method: 'POST',
@@ -46,10 +56,7 @@ export default function SetupPage() {
         body: JSON.stringify({ instagramId, gender, matchPreference, dateOfBirth, numerologyName }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Something went wrong');
-        return;
-      }
+      if (!res.ok) { setError(data.error || 'Something went wrong'); return; }
       setStep(2);
     } catch {
       setError('Network error. Please try again.');
@@ -61,7 +68,6 @@ export default function SetupPage() {
   async function handleStep2() {
     setLoading(true);
     setError('');
-
     try {
       const res = await fetch('/api/setup', {
         method: 'PUT',
@@ -76,11 +82,7 @@ export default function SetupPage() {
           funAnswer,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Something went wrong');
-        return;
-      }
+      if (!res.ok) { const d = await res.json(); setError(d.error || 'Something went wrong'); return; }
       router.push('/feed');
     } catch {
       setError('Network error. Please try again.');
@@ -109,15 +111,9 @@ export default function SetupPage() {
           {step === 1 ? (
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="gender">
-                  I identify as *
-                </label>
-                <select
-                  id="gender"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="gender">I identify as *</label>
+                <select id="gender" value={gender} onChange={(e) => setGender(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300">
                   <option value="">Select gender</option>
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
@@ -126,15 +122,9 @@ export default function SetupPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="matchPreference">
-                  I am interested in *
-                </label>
-                <select
-                  id="matchPreference"
-                  value={matchPreference}
-                  onChange={(e) => setMatchPreference(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="matchPreference">I am interested in *</label>
+                <select id="matchPreference" value={matchPreference} onChange={(e) => setMatchPreference(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300">
                   <option value="">Select preference</option>
                   <option value="WOMEN">Women</option>
                   <option value="MEN">Men</option>
@@ -143,45 +133,26 @@ export default function SetupPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="dateOfBirth">
-                  Date of Birth *
-                </label>
-                <input
-                  type="date"
-                  id="dateOfBirth"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="dateOfBirth">Date of Birth *</label>
+                <input type="date" id="dateOfBirth" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
                   max={new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                />
-                <p className="text-xs text-gray-500 mt-1">Used to calculate your Life Path number</p>
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300" />
+                <p className="text-xs text-gray-500 mt-1">Used to calculate your Life Path number. Never shown publicly.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="numerologyName">
-                  Full Name for Numerology *
-                </label>
-                <input
-                  type="text"
-                  id="numerologyName"
-                  value={numerologyName}
-                  onChange={(e) => setNumerologyName(e.target.value)}
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="numerologyName">Full Name for Numerology *</label>
+                <input type="text" id="numerologyName" value={numerologyName} onChange={(e) => setNumerologyName(e.target.value)}
                   placeholder="Enter your full birth name"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                />
-                <p className="text-xs text-gray-500 mt-1">Used to calculate your Expression and Soul Urge numbers. Not displayed publicly.</p>
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300" />
+                <p className="text-xs text-gray-500 mt-1">Used to calculate Expression and Soul Urge numbers. Not displayed publicly.</p>
               </div>
 
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
-              )}
+              {error && <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
 
-              <button
-                onClick={handleStep1}
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-rose-500 to-purple-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-              >
-                {loading ? 'Calculating...' : 'Calculate My Numbers →'}
+              <button onClick={handleStep1} disabled={loading}
+                className="w-full bg-gradient-to-r from-rose-500 to-purple-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
+                {loading ? 'Calculating your numbers...' : 'Calculate My Numbers →'}
               </button>
             </div>
           ) : (
@@ -191,106 +162,62 @@ export default function SetupPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="age">Age</label>
-                  <input
-                    type="number"
-                    id="age"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    min="18"
-                    max="120"
-                    placeholder="25"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                  />
+                  <input type="number" id="age" value={age} onChange={(e) => setAge(e.target.value)} min="18" max="120" placeholder="25"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="city">City</label>
-                  <input
-                    type="text"
-                    id="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="London"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                  />
+                  <input type="text" id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Mumbai"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="relationshipGoal">
-                  Relationship Goal
-                </label>
-                <select
-                  id="relationshipGoal"
-                  value={relationshipGoal}
-                  onChange={(e) => setRelationshipGoal(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="relationshipGoal">Relationship Goal</label>
+                <select id="relationshipGoal" value={relationshipGoal} onChange={(e) => setRelationshipGoal(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300">
                   <option value="">Select goal</option>
-                  <option value="serious">Serious relationship</option>
-                  <option value="casual">Casual dating</option>
-                  <option value="friendship">Friendship first</option>
-                  <option value="undecided">Undecided</option>
+                  <option value="Casual">Casual</option>
+                  <option value="Serious">Serious</option>
+                  <option value="Friendship">Friendship</option>
+                  <option value="Open to anything">Open to anything</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="personalityType">
-                  Personality Type (e.g. MBTI, Enneagram)
-                </label>
-                <input
-                  type="text"
-                  id="personalityType"
-                  value={personalityType}
-                  onChange={(e) => setPersonalityType(e.target.value)}
-                  placeholder="e.g. INFJ, Type 4"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="personalityType">Personality Type</label>
+                <select id="personalityType" value={personalityType} onChange={(e) => setPersonalityType(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                  <option value="">Select type</option>
+                  <option value="Introvert">Introvert</option>
+                  <option value="Extrovert">Extrovert</option>
+                  <option value="Ambivert">Ambivert</option>
+                </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="dealbreakers">
-                  Dealbreakers
-                </label>
-                <input
-                  type="text"
-                  id="dealbreakers"
-                  value={dealbreakers}
-                  onChange={(e) => setDealbreakers(e.target.value)}
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="dealbreakers">Dealbreakers (max 200 chars)</label>
+                <input type="text" id="dealbreakers" value={dealbreakers} onChange={(e) => setDealbreakers(e.target.value.slice(0, 200))}
                   placeholder="e.g. Smoking, long distance"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="funAnswer">
-                  Fun question: If you were a number, which would you be and why?
-                </label>
-                <textarea
-                  id="funAnswer"
-                  value={funAnswer}
-                  onChange={(e) => setFunAnswer(e.target.value)}
-                  rows={3}
-                  placeholder="I'd be 7 because..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="funAnswer">Describe your ideal weekend (max 100 chars)</label>
+                <textarea id="funAnswer" value={funAnswer} onChange={(e) => setFunAnswer(e.target.value.slice(0, 100))} rows={3}
+                  placeholder="A slow morning, a hike, good food..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none" />
               </div>
 
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
-              )}
+              {error && <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => router.push('/feed')}
-                  className="flex-1 border border-gray-200 text-gray-600 font-medium py-4 rounded-2xl hover:bg-gray-50 transition-all"
-                >
+                <button onClick={() => router.push('/feed')}
+                  className="flex-1 border border-gray-200 text-gray-600 font-medium py-4 rounded-2xl hover:bg-gray-50 transition-all">
                   Skip for now
                 </button>
-                <button
-                  onClick={handleStep2}
-                  disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-rose-500 to-purple-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                >
+                <button onClick={handleStep2} disabled={loading}
+                  className="flex-1 bg-gradient-to-r from-rose-500 to-purple-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
                   {loading ? 'Saving...' : 'Complete Setup 🎉'}
                 </button>
               </div>
