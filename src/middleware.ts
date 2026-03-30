@@ -16,8 +16,27 @@ export default withAuth(
       return NextResponse.redirect(new URL('/consent', req.url));
     }
 
-    // Consented but hasn't completed setup → /setup  (allow /setup itself through)
-    if (token.consentGiven && !token.setupDone && pathname !== '/setup' && pathname !== '/consent') {
+    // Consented but is a Google user who hasn't uploaded a photo yet → /upload-photo
+    // (Instagram users always have photoUploaded = true set at consent time)
+    if (
+      token.consentGiven &&
+      token.provider === 'google' &&
+      !token.photoUploaded &&
+      pathname !== '/upload-photo' &&
+      pathname !== '/consent'
+    ) {
+      return NextResponse.redirect(new URL('/upload-photo', req.url));
+    }
+
+    // Consented, photo OK, but hasn't completed setup → /setup
+    if (
+      token.consentGiven &&
+      (token.provider !== 'google' || token.photoUploaded) &&
+      !token.setupDone &&
+      pathname !== '/setup' &&
+      pathname !== '/consent' &&
+      pathname !== '/upload-photo'
+    ) {
       return NextResponse.redirect(new URL('/setup', req.url));
     }
 
@@ -34,5 +53,13 @@ export default withAuth(
 
 // Protect all app pages (not API routes, not static files, not public pages)
 export const config = {
-  matcher: ['/feed/:path*', '/leaderboard/:path*', '/my-couples/:path*', '/settings/:path*', '/consent', '/setup'],
+  matcher: [
+    '/feed/:path*',
+    '/leaderboard/:path*',
+    '/my-couples/:path*',
+    '/settings/:path*',
+    '/consent',
+    '/setup',
+    '/upload-photo',
+  ],
 };

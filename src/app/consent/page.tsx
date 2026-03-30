@@ -14,6 +14,7 @@ export default function ConsentPage() {
 
   const [sessionUser, setSessionUser] = useState<{
     instagramId: string;
+    provider: string;
     username: string;
     displayName: string;
     profilePhotoUrl: string;
@@ -44,6 +45,7 @@ export default function ConsentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           instagramId: sessionUser.instagramId,
+          provider: sessionUser.provider,
           username: sessionUser.username,
           displayName: sessionUser.displayName,
           profilePhotoUrl: sessionUser.profilePhotoUrl,
@@ -77,7 +79,7 @@ export default function ConsentPage() {
           <div className="prose prose-sm text-gray-600 space-y-3 max-h-64 overflow-y-auto border border-gray-100 rounded-xl p-4">
             <p><strong>Welcome to CoupleUp!</strong></p>
             <p><strong>1. Age Requirement:</strong> You must be 18 years or older to use this service.</p>
-            <p><strong>2. Data Collection:</strong> We collect your Instagram profile information and the numerology data you provide (name, date of birth) solely to facilitate matchmaking.</p>
+            <p><strong>2. Data Collection:</strong> We collect your profile information (display name, profile photo) and the numerology data you provide (name, date of birth) solely to facilitate matchmaking.</p>
             <p><strong>3. Visibility:</strong> Your display name and profile photo will be visible to all CoupleUp users as part of couple pairings in the public feed.</p>
             <p><strong>4. Matching:</strong> You will be algorithmically matched with other consenting users based on numerological compatibility. You may leave a couple pairing at any time.</p>
             <p><strong>5. Voting:</strong> Other users may vote for couple pairings including yours. You may vote on up to 10 couples per day, but not on your own couples.</p>
@@ -99,7 +101,7 @@ export default function ConsentPage() {
               <input type="checkbox" checked={checkbox2} onChange={(e) => setCheckbox2(e.target.checked)}
                 className="mt-1 h-5 w-5 rounded border-gray-300 text-rose-500 focus:ring-rose-500" />
               <span className="text-sm text-gray-700 font-medium">
-                I specifically consent to my <strong>Instagram display name and profile photo</strong> being displayed publicly on CoupleUp, paired with other users, shown in a public voting feed, and ranked on a public leaderboard.
+                I specifically consent to my <strong>display name and profile photo</strong> being displayed publicly on CoupleUp, paired with other users, shown in a public voting feed, and ranked on a public leaderboard.
               </span>
             </label>
 

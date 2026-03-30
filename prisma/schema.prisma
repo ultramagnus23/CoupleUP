@@ -9,10 +9,19 @@ datasource db {
 
 model User {
   id                String    @id @default(uuid())
+  /// Stores the provider-scoped account ID.
+  /// For Instagram users this is the raw Instagram ID.
+  /// For Google users this is prefixed: "google:{google_sub}".
   instagramId       String    @unique @map("instagram_id")
+  /// "instagram" or "google"
+  provider          String    @default("instagram")
   username          String
   displayName       String    @map("display_name")
   profilePhotoUrl   String    @map("profile_photo_url")
+  /// True once the user has uploaded their own photo via /upload-photo.
+  /// Always true for Instagram users (their profile photo is used directly).
+  /// Google users must upload before proceeding to /setup.
+  photoUploaded     Boolean   @default(false) @map("photo_uploaded")
   numerologyName    String?   @map("numerology_name")
   dateOfBirth       DateTime? @map("date_of_birth")
   lifePathNumber    Int?      @map("life_path_number")

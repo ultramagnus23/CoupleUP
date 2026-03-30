@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { instagramId, username, displayName, profilePhotoUrl, checkbox1, checkbox2, checkbox3 } = body;
+    const { instagramId, username, displayName, profilePhotoUrl, provider, checkbox1, checkbox2, checkbox3 } = body;
 
     if (!checkbox1 || !checkbox2 || !checkbox3) {
       return NextResponse.json({ error: 'All checkboxes must be checked' }, { status: 400 });
@@ -23,9 +23,13 @@ export async function POST(req: NextRequest) {
       where: { instagramId },
       create: {
         instagramId,
+        // Instagram users are always "instagram"; Google uses the "google:..." prefixed ID
+        provider: provider === 'google' ? 'google' : 'instagram',
         username,
         displayName,
         profilePhotoUrl: profilePhotoUrl || '',
+        // Instagram users always have a profile photo from the OAuth flow; Google users must upload separately
+        photoUploaded: provider !== 'google',
         consentGiven: true,
         consentTimestamp: now,
         consentIp: ip,

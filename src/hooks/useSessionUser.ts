@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 
 export interface SessionUser {
   instagramId: string;
+  provider: 'instagram' | 'google';
   username: string;
   displayName: string;
   profilePhotoUrl: string;
   consentGiven: boolean;
   setupDone: boolean;
+  photoUploaded: boolean;
 }
 
 /**
